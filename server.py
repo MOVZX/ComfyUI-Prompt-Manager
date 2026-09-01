@@ -201,7 +201,7 @@ async def update_preset_image(request):
 @routes.get("/prompt_manager/gallery")
 async def gallery(request):
     try:
-        limit = min(int(request.rel_url.query.get("limit", "100")), 200)
+        limit = min(max(int(request.rel_url.query.get("limit", "100")), 0), 200)
     except ValueError:
         limit = 100
 
@@ -246,7 +246,7 @@ async def import_presets(request):
     if data is None:
         return web.json_response({"error": "Invalid JSON body"}, status=400)
 
-    payload = data.get("payload") if isinstance(data, dict) else None
+    payload = data.get("payload") if isinstance(data, dict) else data
 
     if payload is None and isinstance(data, dict):
         payload = data

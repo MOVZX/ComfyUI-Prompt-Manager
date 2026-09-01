@@ -376,9 +376,12 @@ def _resolve_slug(name, old_slug=None):
 
 def encode_image(data):
     """Normalize an uploaded/output image to a small JPEG."""
-    img = ImageOps.exif_transpose(Image.open(io.BytesIO(data)))
+    try:
+        img = ImageOps.exif_transpose(Image.open(io.BytesIO(data)))
 
-    img.load()
+        img.load()
+    except (Image.UnidentifiedImageError, OSError) as e:
+        raise ValueError("Not a valid image") from e
 
     if img.mode != "RGB":
         if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
@@ -484,15 +487,21 @@ def save_preset(data, old_slug=None, replace=False):
         # A conflict is the same name in the same category; the same name in
         # another category is a different preset.
         same_name = find_preset_by_name(name, category)
+        is_self = same_name is not None and editing is not None and same_name.get("slug") == editing.get("slug")
 
-        if same_name is not None:
-            is_self = editing is not None and same_name.get("slug") == editing.get("slug")
+        if same_name is not None and not (replace or is_self):
+            raise ValueError("A preset named '{}' already exists in this category".format(name))
 
-            if not (replace or is_self):
-                raise ValueError("A preset named '{}' already exists in this category".format(name))
+        # Overwriting a conflicting preset replaces that record: take its
+        # slug, so the write replaces its file instead of leaving two
+        # presets with the same name in one category.
+        conflict = same_name if (replace and editing is not None and not is_self) else None
 
         existing = editing if editing is not None else same_name
         slug = _resolve_slug(name, existing.get("slug") if existing else None)
+
+        if conflict is not None:
+            slug = _resolve_slug(name, conflict.get("slug"))
         folder = category_dir(category)
 
         folder.mkdir(parents=True, exist_ok=True)
@@ -548,6 +557,13 @@ def save_preset(data, old_slug=None, replace=False):
 
             preset["image"] = None
 
+        if conflict is not None and not preset.get("image"):
+            # the overwritten preset's image does not carry over
+            leftover = image_file(slug)
+
+            if leftover.exists():
+                leftover.unlink()
+
         _write_json(path, preset)
 
         # remove the old file if the preset moved (slug or category changed);
@@ -565,12 +581,17 @@ def save_preset(data, old_slug=None, replace=False):
 
 
 def delete_preset(name_or_slug):
-    preset = load_preset(name_or_slug)
-
-    if preset is None:
-        return False
-
     with _lock:
+        # slugs are globally unique and the API sends them, so a slug match
+        # wins: a different preset's name must not shadow it
+        preset = find_preset_by_slug(name_or_slug)
+
+        if preset is None:
+            preset = load_preset(name_or_slug)
+
+        if preset is None:
+            return False
+
         category = str(preset.get("category") or "")
         path = preset_file(preset["slug"], category)
 

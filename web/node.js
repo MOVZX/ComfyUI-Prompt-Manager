@@ -43,7 +43,7 @@ function syncNodeCombos() {
     app.graph.setDirtyCanvas?.(true, true);
 }
 
-// "Save text": open the manager's editor with the node's prefix/text/suffix
+// "Save Preset": open the manager's editor with the node's prefix/text/suffix
 // verbatim so it can be stored as a preset (or to review the one it came
 // from). No splitting is guessed: each field maps to its editor field.
 function saveTextFromNode(node) {
@@ -292,7 +292,7 @@ export function registerNode() {
                 const btnSave = this.addWidget("button", "Save Preset", "", () => saveTextFromNode(this));
                 btnSave.options.serialize = false;
                 btnSave.serialize = false;
-                const btn = this.addWidget("button", "Preset Manager", "", () => openManager());
+                const btn = this.addWidget("button", "Prompt Manager", "", () => openManager());
                 btn.options.serialize = false;
                 btn.serialize = false;
 

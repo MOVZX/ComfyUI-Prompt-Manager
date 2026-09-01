@@ -230,7 +230,7 @@ function ensureOverlay() {
     const modal = el("div", "pm-modal");
 
     const header = el("div", "pm-header");
-    titleEl = el("div", "pm-title", "Prompt Presets");
+    titleEl = el("div", "pm-title", "Prompt Manager");
     const btnBack = el("button", "pm-btn pm-back", "\u2190 Back");
     btnBack.onclick = () => {
         if (!confirmDiscard()) return;
@@ -740,7 +740,7 @@ function renderTagPanel() {
 function setManagingUI(on) {
     managing = on;
     if (overlay) overlay.classList.toggle("pm-managing", on);
-    titleEl.textContent = on ? "Manage categories & tags" : editing ? "Edit: " + editing.name : "Prompt Presets";
+    titleEl.textContent = on ? "Manage categories & tags" : editing ? "Edit: " + editing.name : "Prompt Manager";
     if (on) renderManage();
 }
 
@@ -958,7 +958,7 @@ function showEmpty() {
     pendingImage = null;
     formDirty = false;
     editorEl.innerHTML = "";
-    titleEl.textContent = "Prompt Presets";
+    titleEl.textContent = "Prompt Manager";
     setEditingUI(false);
     renderList();
 }
@@ -1278,7 +1278,7 @@ function closeManager() {
     refreshPresets();
 }
 
-// "Save text" from a node: open the editor with the node's prefix/text/
+// "Save Preset" from a node: open the editor with the node's prefix/text/
 // suffix verbatim. If all three match the selected preset's parts, open
 // that preset; else open a new preset with the parts in place.
 // (Name left for the user.)

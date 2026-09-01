@@ -11,7 +11,7 @@ class PromptManager:
     parts; edit them freely afterwards. "None" leaves the fields untouched.
     When all three fields are empty, the selected preset's assembly is used.
     Outputs the text, and as conditioning when a CLIP is connected.
-    Presets are managed with the Manage button on this node."""
+    Presets are managed with the Prompt Manager button on this node."""
 
     @classmethod
     def INPUT_TYPES(cls):

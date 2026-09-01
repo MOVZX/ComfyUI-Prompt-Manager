@@ -40,25 +40,34 @@ within about a second of any change on disk.
 
 Inputs:
 
-| Input      | Description                                                                               |
-| ---------- | ----------------------------------------------------------------------------------------- |
-| `category` | Dropdown, A–Z. "All Categories" shows every preset.                                       |
-| `preset`   | Dropdown, A–Z, filtered by the selected category. "None" leaves the text field untouched. |
-| `clip`     | Optional. Only needed for the conditioning output.                                        |
-| `text`     | Selecting a preset fills it with prefix, prompt and suffix; edit freely afterwards.       |
+| Input              | Description                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------- |
+| `category`         | Dropdown, A–Z. "All Categories" shows every preset.                                   |
+| `preset`           | Dropdown, A–Z, filtered by the selected category. "None" leaves the fields untouched. |
+| `clip`             | Optional. Only needed for the conditioning output.                                    |
+| `prefix` / `text` / `suffix` | Editable fields. Selecting a preset fills them; edit freely afterwards. |
 
 Behavior:
 
-- The text field is the source of truth: what is in it is what gets output.
-  If it is empty, the selected preset is assembled as the fallback.
-- The node follows the manager: selecting a preset fills the text field, and
-  while you have not edited the field yourself, later edits to that preset's
+- The three fields are the source of truth: they are assembled
+  prefix → text → suffix (separated by blank lines) into the output.
+- Only when all three are empty is the selected preset assembled as the
+  fallback.
+- The node follows the manager: selecting a preset fills the fields, and
+  while you have not edited them yourself, later edits to that preset's
   text or featured image in the manager update the node automatically.
-- The node resizes freely. The text field keeps at least 1 row (10 at the
-  default size) and the featured-image cover fills up to 30% of the node
-  height below it. The image is drawn at its natural aspect ratio (auto
+- The node resizes freely: prefix, text and suffix share the lower area in
+  a 3:10:3 ratio, and the featured-image cover fills up to 30% of the node
+  height below them. The image is drawn at its natural aspect ratio (auto
   width, no crop), centered, with the standard 4px bottom padding.
-- The `Cover` dropdown (Show/Hide, saved with the workflow) toggles the image.
+- The `Cover` dropdown (Show/Hide, remembered per browser) toggles the image.
+
+Buttons:
+
+- The **Prompt Manager** button opens the preset manager.
+- The **Save Preset** button opens the editor with the node's current fields,
+  ready to save as a preset; when the fields still match the selected preset,
+  that preset opens instead.
 
 Outputs:
 
@@ -67,30 +76,30 @@ Outputs:
 | `CONDITIONING` | The text encoded by CLIP; `None` when no CLIP is connected. |
 | `STRING`       | The text as-is.                                             |
 
-The **Manage** button opens the preset manager.
-
 ## Manager
 
 - **Full page mode**: open `http://localhost:8188/prompt_manager/dashboard` (or the "Full page" button in the header) to view the manager as a dedicated full-screen page; the choice is remembered.
 - **Search** presets by name, text, category or tags. Filter by category
-  (dropdown) and by tags ("Tags" button opens a searchable panel; selected
-  tags stay visible as removable chips). Categories and tags sort A–Z;
-  presets sort newest-created first.
+  (sidebar with counts, or the dropdown) and by tags ("Tags" button opens a
+  searchable panel; selected tags stay visible as removable chips). Categories
+  and tags sort A–Z; presets sort newest-created first.
 - **Create / edit / delete** presets. Renaming a preset renames its JSON file
   and moves the image to follow the new slug. Preset names and categories are
   limited to 64 characters. Names are unique **within a category**; the same
   name may exist in different categories (the file slug then gets a `-2`,
   `-3`, … suffix to stay unique). Saving over an existing same-name,
   same-category preset asks for confirmation first.
-- **Edit categories & tags** (toggle under the tag filter): rename a category
-  (renames its folder) or tag across every preset that uses it (type the new
-  name, press Enter), or delete it (×). A category folder is only deletable
-  while it holds no presets.
-- The editor offers resizable prefix (3 rows), prompt (8) and suffix (3)
-  textareas; a category dropdown with "+ Add new category…"; and a
-  comma-separated tag input with autocomplete from existing tags.
-- Featured image: upload a file, or pick a recent image from ComfyUI's output
-  folder.
+- **Manage** page (Manage button): rename or delete categories (a category is
+  its folder; only empty ones are deletable) and tags (renamed or removed
+  across every preset that uses it), with each item's preset usage.
+- The editor offers prefix (5 rows), prompt (21) and suffix (5) textareas, a
+  live preview of the assembled text with a Copy button, a category dropdown
+  with "+ Add new category…", and a comma-separated tag input with
+  autocomplete from existing tags.
+- Featured image: upload a file, drag it onto the editor, or pick a recent
+  image from ComfyUI's output folder.
+- Select presets with the card checkbox to **Export selected (N)**; single
+  presets export from the card's export action.
 
 ## Import / Export
 
@@ -136,7 +145,7 @@ All routes under `/prompt_manager/` (also mirrored under `/api/`).
 | GET    | `dashboard`          | Redirect to the ComfyUI page with the manager opened full page                                                                                                                     |
 | GET    | `presets/{name}`     | Full preset (image as base64)                                                                                                                                                          |
 | POST   | `save`               | Create/update. Body: preset fields + `old_slug`, optional `replace` (overwrite a same-name, same-category preset), and `image` (base64/data URI), `image_output_path` or `image_remove`. 400 on invalid image, overlong name/category, or a same-category duplicate name |
-| POST   | `delete`             | Delete by `name`                                                                                                                                                                       |
+| POST   | `delete`             | Delete by slug or name (a slug match wins; the UI sends slugs)                                                                                                                                                                       |
 | POST   | `rename_category`    | Rename a category folder (`name`, `new_name`); empty `new_name` deletes the folder — 400 while it still holds presets. Returns moved count                                             |
 | POST   | `rename_tag`         | Rename a tag everywhere (`tag`, `new_tag`; empty `new_tag` deletes it). Returns changed count                                                                                          |
 | GET    | `image/{name}`       | Featured image bytes                                                                                                                                                                   |

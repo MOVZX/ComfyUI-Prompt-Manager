@@ -1,0 +1,1 @@
+# No extra dependencies: stdlib + Pillow (already required by ComfyUI) + aiohttp (ComfyUI server).

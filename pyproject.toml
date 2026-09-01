@@ -1,0 +1,12 @@
+[project]
+name = "comfyui-prompt-manager"
+version = "1.0.0"
+description = "Save and load prompt presets (prefix/prompt/suffix, categories, tags, featured image) as JSON files in the user config directory."
+authors = [{ name = "MOVZX" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.comfy]
+PublisherId = "movzx"
+Icon = "fa-bookmark"

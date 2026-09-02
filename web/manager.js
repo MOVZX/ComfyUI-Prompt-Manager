@@ -1296,10 +1296,16 @@ export function openEditorFromNodeText(fields, presetName, category) {
         return;
     }
     startNew();
+    if (preset) {
+        fName.value = preset.name + " (edited)";
+        fCategory.value = preset.category || "";
+    } else if (category && state.categories.includes(category)) {
+        fCategory.value = category;
+    }
     fPrefix.value = prefix;
     fPrompt.value = text;
     fSuffix.value = suffix;
-    if (category && state.categories.includes(category)) fCategory.value = category;
+    updateNameHint();
     [fPrefix, fPrompt, fSuffix].forEach((f) => f.dispatchEvent(new Event("input")));
     showStatus("Text loaded from the node — give it a name and save", "ok");
 }

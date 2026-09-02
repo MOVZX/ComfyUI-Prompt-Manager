@@ -540,9 +540,11 @@ function buildEditor() {
     const actions = el("div", "pm-row2");
     const btnSave = el("button", "pm-btn success", "Save preset");
     btnSave.onclick = saveCurrent;
+    const btnDuplicate = el("button", "pm-btn", "Duplicate");
+    btnDuplicate.onclick = duplicateCurrent;
     const btnDelete = el("button", "pm-btn danger", "Delete");
     btnDelete.onclick = () => editing && deletePreset(editing);
-    actions.append(btnSave, btnDelete);
+    actions.append(btnSave, btnDuplicate, btnDelete);
 
     form.append(nameField, prefixField.field, promptField.field, suffixField.field, preview, row2, imgField, actions);
     form.dataset.built = "1";
@@ -1057,6 +1059,38 @@ function editorPayload() {
 }
 
 // ---------- actions ----------
+async function duplicateCurrent() {
+    if (!editing) return;
+    const p = state.presets.find((x) => x.slug === editing.slug);
+    if (!p) return;
+
+    // Build a copy with "(copy)" appended to the name
+    const copy = {
+        name: p.name + " (copy)",
+        prefix: p.prefix,
+        prompt: p.prompt,
+        suffix: p.suffix,
+        category: p.category,
+        tags: [...p.tags],
+        // Copy the image via the source preset's slug
+        image_source: p.slug,
+    };
+
+    showStatus("Duplicating…", "");
+    try {
+        const res = await api.save(copy);
+        editing = { name: res.preset.name, slug: res.preset.slug };
+        pendingImage = null;
+        formDirty = false;
+        await refreshPresets();
+        const newP = state.presets.find((x) => x.slug === editing.slug);
+        if (newP) openInEditor(newP);
+        showStatus("Duplicated “" + editing.name + "”", "ok");
+    } catch (e) {
+        showStatus(e.message, "error");
+    }
+}
+
 async function saveCurrent() {
     let payload = editorPayload();
     // Same name in the same category is a conflict (names may repeat across

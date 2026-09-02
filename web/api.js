@@ -70,7 +70,7 @@ const api = {
     version: () => apiJson("/prompt_manager/version"),
     get: (name) => apiJson("/prompt_manager/presets/" + encodeURIComponent(name)),
     save: (payload) => apiJson("/prompt_manager/save", { method: "POST", body: payload }),
-    remove: (name) => apiJson("/prompt_manager/delete", { method: "POST", body: { name } }),
+    remove: (name) => apiJson("/prompt_manager/delete", { method: "POST", body: { name } }),  // name is actually the slug
     renameCategory: (name, newName) =>
         apiJson("/prompt_manager/rename_category", { method: "POST", body: { name, new_name: newName } }),
     renameTag: (tag, newTag) =>

@@ -101,6 +101,14 @@ async def save_preset(request):
     if not isinstance(data, dict):
         return web.json_response({"error": "Invalid JSON body"}, status=400)
 
+    # If copying an image from another preset, fetch it first
+    image_source = data.get("image_source")
+    if image_source:
+        source_preset = storage.load_preset(image_source)
+        if source_preset and source_preset.get("image"):
+            data["image"] = storage.image_data_uri(source_preset)
+        del data["image_source"]
+
     try:
         preset = storage.save_preset(data, data.get("old_slug"), replace=bool(data.get("replace")))
     except ValueError as e:

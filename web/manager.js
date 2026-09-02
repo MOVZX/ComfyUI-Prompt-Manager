@@ -1030,6 +1030,7 @@ function updateImagePreview() {
     };
     if (pendingImage?.type === "upload") show(pendingImage.dataUrl);
     else if (pendingImage?.type === "output") show(api.gallerySrc(pendingImage.path));
+    else if (pendingImage?.type === "existing") show(api.imageSrc(pendingImage.slug));
     else if (pendingImage?.type === "remove") show(null);
     else if (editing) {
         // slug first: it is globally unique, names may repeat across categories
@@ -1050,6 +1051,7 @@ function editorPayload() {
         old_slug: editing ? editing.slug : null,
         image: pendingImage?.type === "upload" ? pendingImage.dataUrl : null,
         image_output_path: pendingImage?.type === "output" ? pendingImage.path : null,
+        image_source: pendingImage?.type === "existing" ? pendingImage.slug : null,
         image_remove: pendingImage?.type === "remove" ? true : null,
     };
 }
@@ -1299,6 +1301,10 @@ export function openEditorFromNodeText(fields, presetName, category) {
     if (preset) {
         fName.value = preset.name + " (edited)";
         fCategory.value = preset.category || "";
+        // Inherit the cover image from the original preset
+        if (preset.has_image) {
+            pendingImage = { type: "existing", slug: preset.slug };
+        }
     } else if (category && state.categories.includes(category)) {
         fCategory.value = category;
     }
@@ -1306,6 +1312,7 @@ export function openEditorFromNodeText(fields, presetName, category) {
     fPrompt.value = text;
     fSuffix.value = suffix;
     updateNameHint();
+    updateImagePreview();
     [fPrefix, fPrompt, fSuffix].forEach((f) => f.dispatchEvent(new Event("input")));
     showStatus("Text loaded from the node — give it a name and save", "ok");
 }

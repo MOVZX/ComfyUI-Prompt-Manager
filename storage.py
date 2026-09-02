@@ -14,6 +14,7 @@ APP_NAME = "ComfyUI-Prompt-Manager"
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 FEATURE_IMAGE_SIZE = (512, 512)
 MAX_NAME_LENGTH = 64
+MAX_TAG_LENGTH = 64
 
 _lock = threading.Lock()
 _migrated = False
@@ -480,6 +481,10 @@ def save_preset(data, old_slug=None, replace=False):
         tag = str(tag).strip()
 
         if tag and tag not in tags:
+            if len(tag) > MAX_TAG_LENGTH:
+                raise ValueError(
+                    "Tag must be at most {} characters: '{}'".format(MAX_TAG_LENGTH, tag)
+                )
             tags.append(tag)
 
     with _lock:

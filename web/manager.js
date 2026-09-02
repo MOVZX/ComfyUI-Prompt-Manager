@@ -261,6 +261,7 @@ function ensureOverlay() {
     const btnManage = el("button", "pm-btn", "Manage");
     btnManage.onclick = () => {
         if (!confirmDiscard()) return;
+        setEditingUI(false);
         setManagingUI(true);
     };
     const btnClose = el("button", "pm-btn close danger", "×");

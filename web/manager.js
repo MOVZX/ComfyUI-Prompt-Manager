@@ -1,4 +1,4 @@
-import { state, refreshPresets, pmOn } from "./state.js";
+import { state, refreshPresets, pmOn, pmRecentList, pmRecentAdd } from "./state.js";
 import { api, downloadBlob, presetRelPath, assembleText, NEW_CATEGORY } from "./api.js";
 
 let searchQuery = "";
@@ -15,6 +15,7 @@ let sideOpen = localStorage.getItem("pm.sideopen") === "1";
 let btnPageEl = null;
 let sideBtn = null;
 let btnExportSel = null;
+let btnDeleteSel = null;
 let cardSel = new Set();
 
 // ---------- DOM helpers ----------
@@ -188,6 +189,7 @@ function ensureStyles() {
 let overlay = null;
 let titleEl,
     gridEl,
+    recentEl,
     searchEl,
     catFilterEl,
     tagRowEl,
@@ -258,6 +260,9 @@ function ensureOverlay() {
     btnExportSel = el("button", "pm-btn", "Export selected");
     btnExportSel.hidden = true;
     btnExportSel.onclick = exportSelected;
+    btnDeleteSel = el("button", "pm-btn danger", "Delete selected");
+    btnDeleteSel.hidden = true;
+    btnDeleteSel.onclick = deleteSelected;
     const btnManage = el("button", "pm-btn", "Manage");
     btnManage.onclick = () => {
         if (!confirmDiscard()) return;
@@ -273,7 +278,7 @@ function ensureOverlay() {
         localStorage.setItem("pm.fullpage", fullPage ? "1" : "0");
         applyFullPage();
     };
-    header.append(btnNew, btnImport, btnExportSel, btnExportAll, btnManage, btnPageEl, btnClose);
+    header.append(btnNew, btnImport, btnExportSel, btnDeleteSel, btnExportAll, btnManage, btnPageEl, btnClose);
 
     const body = el("div", "pm-body");
 
@@ -318,7 +323,9 @@ function ensureOverlay() {
     tagRowEl = el("div", "pm-tag-row");
     filterRow.append(sideBtn, searchEl, catFilterEl, tagsBtn);
     gridEl = el("div", "pm-grid");
-    listPane.append(filterRow, tagPanelEl, tagRowEl, gridEl);
+    recentEl = el("div", "pm-tag-row");
+    recentEl.hidden = true;
+    listPane.append(filterRow, tagPanelEl, tagRowEl, recentEl, gridEl);
 
     const editorPane = el("div", "pm-editor-pane");
     editorEl = el("div", "pm-editor-holder");
@@ -870,7 +877,39 @@ async function manageDelete(kind, name) {
     }
 }
 
+// "Recent" chip row above the grid: the presets used most recently (picked
+// on a node or opened in the editor), newest first. Hidden while any search
+// or filter narrows the grid.
+function renderRecent() {
+    if (!recentEl) return;
+    recentEl.innerHTML = "";
+    if (searchQuery || filterCategory || filterTags.size) {
+        recentEl.hidden = true;
+        return;
+    }
+    const items = pmRecentList()
+        .map((r) => ({ p: state.presets.find((x) => x.slug === r.slug) }))
+        .filter((r) => r.p)
+        .slice(0, 8);
+    if (!items.length) {
+        recentEl.hidden = true;
+        return;
+    }
+    recentEl.hidden = false;
+    recentEl.append(el("span", "pm-tagger-title", "Recent"));
+    for (const r of items) {
+        const chip = el("span", "pm-tag", r.p.name);
+        chip.title = r.p.category ? r.p.name + " · " + r.p.category : r.p.name;
+        chip.onclick = () => {
+            if (!confirmDiscard()) return;
+            openInEditor(r.p);
+        };
+        recentEl.append(chip);
+    }
+}
+
 function renderList() {
+    renderRecent();
     gridEl.innerHTML = "";
     // drop selections for presets that no longer exist
     for (const slug of [...cardSel]) {
@@ -975,6 +1014,7 @@ function startNew() {
 // The /list summary already carries everything the editor needs, so the
 // editor opens straight from state — no fetch, no base64 image round-trip.
 function openInEditor(p) {
+    pmRecentAdd(p.slug);
     editing = { name: p.name, slug: p.slug };
     pendingImage = null;
     showForm({
@@ -1159,6 +1199,8 @@ function updateSelBtn() {
     if (!btnExportSel) return;
     btnExportSel.hidden = !cardSel.size;
     btnExportSel.textContent = "Export selected (" + cardSel.size + ")";
+    btnDeleteSel.hidden = !cardSel.size;
+    btnDeleteSel.textContent = "Delete selected (" + cardSel.size + ")";
 }
 
 async function exportSelected() {
@@ -1176,22 +1218,44 @@ async function exportSelected() {
     }
 }
 
+async function deleteSelected() {
+    const slugs = [...cardSel];
+    if (!slugs.length) return;
+    const names = slugs.map((s) => state.presets.find((p) => p.slug === s)?.name || s);
+    if (!confirm("Delete " + slugs.length + " preset(s)?\n\n" + names.join(", "))) return;
+    const wasEditing = editing && cardSel.has(editing.slug);
+    try {
+        await Promise.all(slugs.map((s) => api.remove(s)));
+        cardSel.clear();
+        if (wasEditing) showEmpty();
+        await refreshPresets();
+        showStatus("Deleted " + slugs.length + " preset(s)", "ok");
+        renderList();
+    } catch (e) {
+        showStatus(e.message, "error");
+    }
+}
+
 async function importFile(file) {
     try {
         const payload = JSON.parse(await file.text());
-        const before = new Set(state.presets.map((p) => (p.category || "") + "\u0000" + p.name));
-        const res = await api.import(payload);
+        // Preview first: nothing is written until the user confirms.
+        const dry = await api.import(payload, true);
+        let msg =
+            "Import " + file.name + "?\n\n" +
+            "new: " + dry.imported.length +
+            " · overwrite: " + (dry.overwritten || []).length +
+            " · skipped: " + (dry.skipped || []).length;
+        if (dry.overwritten && dry.overwritten.length) msg += "\n\nOverwritten:\n" + dry.overwritten.join(", ");
+        if (dry.skipped && dry.skipped.length) msg += "\n\nSkipped:\n" + dry.skipped.join(", ");
+        if (!confirm(msg)) return;
+        const res = await api.import(payload, false);
         await refreshPresets();
-        let items = [];
-        if (Array.isArray(payload)) items = payload;
-        else if (Array.isArray(payload?.presets)) items = payload.presets;
-        else if (payload && (payload.prompt || payload.prefix)) items = [payload];
-        const replaced = items.filter((it) => it && before.has((it.category || "") + "\u0000" + it.name)).length;
-        let msg = "Imported " + res.imported.length + " preset" + (res.imported.length === 1 ? "" : "s");
-        if (replaced) msg += " (" + replaced + " replaced)";
+        let msg2 = "Imported " + res.imported.length + " preset" + (res.imported.length === 1 ? "" : "s");
+        if (res.overwritten && res.overwritten.length) msg2 += " (" + res.overwritten.length + " replaced)";
         const skipped = res.skipped || [];
-        if (skipped.length) msg += " — skipped " + skipped.length + ": " + skipped.join(", ");
-        showStatus(msg, res.imported.length ? "ok" : "error");
+        if (skipped.length) msg2 += " — skipped " + skipped.length + ": " + skipped.join(", ");
+        showStatus(msg2, res.imported.length ? "ok" : "error");
     } catch (e) {
         showStatus("Import failed: " + e.message, "error");
     }
@@ -1363,6 +1427,15 @@ export function registerManager() {
     });
     pmOn("library-error", (e) => {
         if (overlayVisible()) showStatus("Failed to load presets: " + e.message, "error");
+    });
+    // Ctrl/Cmd+S saves the open editor (the browser page-save is useless here).
+    document.addEventListener("keydown", (e) => {
+        if (!(e.ctrlKey || e.metaKey) || (e.key !== "s" && e.key !== "S")) return;
+        if (overlayVisible() && overlay.classList.contains("pm-editing")) {
+            e.preventDefault();
+            e.stopPropagation();
+            saveCurrent();
+        }
     });
 }
 

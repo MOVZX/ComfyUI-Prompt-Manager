@@ -1,5 +1,5 @@
 import { app } from "../../scripts/app.js";
-import { state, refreshPresets, checkVersion, pmOn, pmCoverMode, pmSetCoverMode } from "./state.js";
+import { state, refreshPresets, checkVersion, pmOn, pmCoverMode, pmSetCoverMode, pmRecentAdd } from "./state.js";
 import { api, assembleText } from "./api.js";
 import { openManager, closeManager, overlayVisible, closeGallery, galleryVisible, openEditorFromNodeText } from "./manager.js";
 
@@ -122,11 +122,18 @@ function syncPresetToText() {
                 lastPushedByNode.delete(node.id);
                 continue;
             }
-            if (preset) pmApplyPreset(node, preset);
-            else
-                api.get(current)
-                    .then((p) => pmApplyPreset(node, p))
+            if (preset) {
+                pmApplyPreset(node, preset);
+                pmRecentAdd(preset.slug);
+            } else {
+                api
+                    .get(current)
+                    .then((p) => {
+                        pmApplyPreset(node, p);
+                        pmRecentAdd(p && p.slug);
+                    })
                     .catch(() => {});
+            }
             continue;
         }
         // Same selection: follow content edits made in the manager, but only

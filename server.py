@@ -259,9 +259,13 @@ async def import_presets(request):
     if payload is None and isinstance(data, dict):
         payload = data
 
+    dry_run = bool(data.get("dry_run")) if isinstance(data, dict) else False
+
     try:
-        imported, skipped = storage.import_payload(payload)
+        imported, skipped, overwritten = storage.import_payload(payload, dry_run=dry_run)
     except (ValueError, json.JSONDecodeError, TypeError) as e:
         return web.json_response({"error": str(e)}, status=400)
 
-    return web.json_response({"ok": True, "imported": imported, "skipped": skipped})
+    return web.json_response(
+        {"ok": True, "imported": imported, "skipped": skipped, "overwritten": overwritten, "dry_run": dry_run}
+    )

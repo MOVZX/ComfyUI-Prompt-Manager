@@ -75,7 +75,8 @@ const api = {
         apiJson("/prompt_manager/rename_category", { method: "POST", body: { name, new_name: newName } }),
     renameTag: (tag, newTag) =>
         apiJson("/prompt_manager/rename_tag", { method: "POST", body: { tag, new_tag: newTag } }),
-    import: (payload) => apiJson("/prompt_manager/import", { method: "POST", body: { payload } }),
+    import: (payload, dryRun) =>
+        apiJson("/prompt_manager/import", { method: "POST", body: { payload, dry_run: !!dryRun } }),
     gallery: (limit) => apiJson("/prompt_manager/gallery" + (limit ? "?limit=" + limit : "")).then((j) => j.files),
     async exportBlob(names) {
         const res = await app.api.fetchApi("/prompt_manager/export", {

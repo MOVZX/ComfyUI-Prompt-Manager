@@ -667,8 +667,40 @@ def build_export(names=None):
     }
 
 
-def import_payload(payload):
-    """Import a bundle dict, a list of presets, or a single preset dict."""
+def _import_check(item):
+    """Preflight one import item with save_preset's validation rules.
+    Raises ValueError for an item the save would skip."""
+    name = str(item.get("name") or "").strip()
+
+    if not name:
+        raise ValueError("Name is required")
+
+    if len(name) > MAX_NAME_LENGTH:
+        raise ValueError("Name must be at most {} characters".format(MAX_NAME_LENGTH))
+
+    if not (
+        str(item.get("prefix") or "").strip()
+        or str(item.get("prompt") or "").strip()
+        or str(item.get("suffix") or "").strip()
+    ):
+        raise ValueError("Preset is empty: prefix, prompt and suffix are all empty")
+
+    category = str(item.get("category") or "").strip()
+
+    if len(category) > MAX_NAME_LENGTH:
+        raise ValueError("Category must be at most {} characters".format(MAX_NAME_LENGTH))
+
+    for tag in item.get("tags") or []:
+        tag = str(tag).strip()
+
+        if tag and len(tag) > MAX_TAG_LENGTH:
+            raise ValueError("Tag must be at most {} characters: '{}'".format(MAX_TAG_LENGTH, tag))
+
+
+def import_payload(payload, dry_run=False):
+    """Import a bundle dict, a list of presets, or a single preset dict.
+    Returns (imported, skipped, overwritten). With dry_run nothing is
+    written: the lists predict what a real import would do."""
     if isinstance(payload, str):
         payload = json.loads(payload)
 
@@ -683,10 +715,31 @@ def import_payload(payload):
 
     imported = []
     skipped = []
+    overwritten = []
+    seen = set()
 
     for index, item in enumerate(items):
+        label = str(item.get("name") or "item {}".format(index + 1)) if isinstance(item, dict) else "item {}".format(index + 1)
+
         if not isinstance(item, dict):
-            skipped.append("item {}".format(index + 1))
+            skipped.append(label)
+
+            continue
+
+        try:
+            _import_check(item)
+        except ValueError:
+            skipped.append(label)
+
+            continue
+
+        name = str(item.get("name") or "").strip()
+        category = str(item.get("category") or "").strip()
+        is_overwrite = find_preset_by_name(name, category) is not None or (category, name) in seen
+
+        if dry_run:
+            (overwritten if is_overwrite else imported).append(name)
+            seen.add((category, name))
 
             continue
 
@@ -714,13 +767,17 @@ def import_payload(payload):
         try:
             preset = save_preset(payload, replace=True)
         except ValueError:
-            skipped.append(str(item.get("name") or "item {}".format(index + 1)))
+            skipped.append(label)
 
             continue
 
         imported.append(preset["name"])
 
-    return imported, skipped
+        if is_overwrite:
+            overwritten.append(preset["name"])
+        seen.add((category, name))
+
+    return imported, skipped, overwritten
 
 
 def _migrate_to_folders():

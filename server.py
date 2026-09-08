@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from aiohttp import web
@@ -94,13 +95,9 @@ async def get_preset(request):
     return web.json_response(preset)
 
 
-@routes.post("/prompt_manager/save")
-async def save_preset(request):
-    data = await _json_body(request)
-
-    if not isinstance(data, dict):
-        return web.json_response({"error": "Invalid JSON body"}, status=400)
-
+def _save_payload(data):
+    # Runs off the event loop: the image decode, the library scans and the
+    # file writes are blocking work
     # If copying an image from another preset, fetch it first
     image_source = data.get("image_source")
     if image_source:
@@ -109,8 +106,18 @@ async def save_preset(request):
             data["image"] = storage.image_data_uri(source_preset)
         del data["image_source"]
 
+    return storage.save_preset(data, data.get("old_slug"), replace=bool(data.get("replace")))
+
+
+@routes.post("/prompt_manager/save")
+async def save_preset(request):
+    data = await _json_body(request)
+
+    if not isinstance(data, dict):
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
     try:
-        preset = storage.save_preset(data, data.get("old_slug"), replace=bool(data.get("replace")))
+        preset = await asyncio.to_thread(_save_payload, data)
     except ValueError as e:
         return web.json_response({"error": str(e)}, status=400)
     except FileNotFoundError:
@@ -213,7 +220,9 @@ async def gallery(request):
     except ValueError:
         limit = 100
 
-    return web.json_response({"files": storage.list_gallery(limit)})
+    files = await asyncio.to_thread(storage.list_gallery, limit)
+
+    return web.json_response({"files": files})
 
 
 @routes.get("/prompt_manager/gallery_file")
@@ -230,6 +239,13 @@ async def gallery_file(request):
     return web.Response(body=data, content_type=mime, headers={"Cache-Control": "no-store"})
 
 
+def _export_body(names):
+    # Runs off the event loop: base64-encoding every featured image is the
+    # heavy part
+    bundle = storage.build_export(names)
+    return json.dumps(bundle, ensure_ascii=False).encode("utf-8")
+
+
 @routes.post("/prompt_manager/export")
 async def export_presets(request):
     data = await _json_body(request)
@@ -238,8 +254,7 @@ async def export_presets(request):
     if names is not None and not isinstance(names, list):
         names = None
 
-    bundle = storage.build_export(names)
-    body = json.dumps(bundle, ensure_ascii=False).encode("utf-8")
+    body = await asyncio.to_thread(_export_body, names)
     response = web.Response(body=body, content_type="application/json")
 
     response.headers["Content-Disposition"] = 'attachment; filename="comfyui-prompt-presets.json"'
@@ -262,7 +277,7 @@ async def import_presets(request):
     dry_run = bool(data.get("dry_run")) if isinstance(data, dict) else False
 
     try:
-        imported, skipped, overwritten = storage.import_payload(payload, dry_run=dry_run)
+        imported, skipped, overwritten = await asyncio.to_thread(storage.import_payload, payload, dry_run=dry_run)
     except (ValueError, json.JSONDecodeError, TypeError) as e:
         return web.json_response({"error": str(e)}, status=400)
 

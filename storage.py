@@ -477,7 +477,14 @@ def save_preset(data, old_slug=None, replace=False):
 
     tags = []
 
-    for tag in data.get("tags") or []:
+    # Hand-edited bundles and third-party clients can send tags as one
+    # comma-separated string; split it like the editor input does instead of
+    # iterating characters
+    raw_tags = data.get("tags")
+    if isinstance(raw_tags, str):
+        raw_tags = raw_tags.split(",")
+
+    for tag in raw_tags or []:
         tag = str(tag).strip()
 
         if tag and tag not in tags:

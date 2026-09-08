@@ -1105,9 +1105,18 @@ async function duplicateCurrent() {
     const p = state.presets.find((x) => x.slug === editing.slug);
     if (!p) return;
 
-    // Build a copy with "(copy)" appended to the name
+    // " (copy)", then " (copy) 2", …: the first name that is free in the
+    // preset's own category (names may repeat across categories)
+    const taken = new Set(
+        state.presets
+            .filter((x) => (x.category || "") === (p.category || ""))
+            .map((x) => x.name),
+    );
+    let name = p.name + " (copy)";
+    for (let n = 2; taken.has(name); n++) name = `${p.name} (copy) ${n}`;
+
     const copy = {
-        name: p.name + " (copy)",
+        name,
         prefix: p.prefix,
         prompt: p.prompt,
         suffix: p.suffix,

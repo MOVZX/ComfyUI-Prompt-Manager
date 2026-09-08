@@ -10,7 +10,8 @@ class PromptManager:
     "All Categories"), then a preset: the fields fill with the preset's
     parts; edit them freely afterwards. "None" leaves the fields untouched.
     When all three fields are empty, the selected preset's assembly is used.
-    Outputs the text, and as conditioning when a CLIP is connected.
+    Outputs the text, and as conditioning when a CLIP is connected
+    (empty conditioning without one).
     Presets are managed with the Prompt Manager button on this node."""
 
     @classmethod
@@ -50,6 +51,7 @@ class PromptManager:
             out = storage.assemble_text(data) if data is not None else ""
 
         if clip is None:
-            return (None, out)
+            return ([], out)
 
-        return (clip.encode(out), out)
+        tokens = clip.tokenize(out)
+        return (clip.encode_from_tokens_scheduled(tokens), out)

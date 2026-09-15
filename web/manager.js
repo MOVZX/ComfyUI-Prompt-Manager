@@ -1383,6 +1383,8 @@ function openManager(full) {
 function closeManager() {
     if (!confirmDiscard()) return;
     showEmpty();
+    managing = false;
+    setManagingUI(false);
     if (gOverlay) gOverlay.hidden = true;
     overlay.hidden = true;
     refreshPresets();

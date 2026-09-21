@@ -151,6 +151,7 @@ const CSS = `
 .pm-preview-text{background:#0f1115;border:1px solid #2a2e37;border-radius:6px;color:#9aa4b2;padding:8px 10px;font-size:11px;line-height:1.55;white-space:pre-wrap;word-break:break-word;max-height:150px;overflow-y:auto;font-family:inherit;margin:0}
 .pm-row2{display:flex;gap:12px}
 .pm-row2 .pm-field{flex:1}
+.pm-row2 .pm-field.wide{flex:2}
 .pm-tag-wrap{position:relative}
 .pm-suggest{position:absolute;left:0;right:0;top:100%;z-index:5;background:#1e2128;border:1px solid #343945;border-radius:6px;margin-top:2px;box-shadow:0 6px 18px rgba(0,0,0,.45);overflow:hidden;display:none}
 .pm-suggest.open{display:block}
@@ -163,7 +164,7 @@ const CSS = `
 .pm-img-row.pm-img-drop{outline:2px dashed #3b82f6;outline-offset:2px;border-radius:6px}
 .pm-img-preview{width:110px;height:82px;object-fit:cover;border-radius:6px;border:1px solid #2a2e37;background:#12141a}
 .pm-img-placeholder{width:110px;height:82px;border-radius:6px;border:1px dashed #343945;display:flex;align-items:center;justify-content:center;color:#5b6370;font-size:11px}
-.pm-img-btns{display:flex;flex-direction:column;gap:6px}
+.pm-img-btns{display:flex;flex-direction:row;gap:6px}
 .pm-footer{flex:none;display:flex;align-items:center;min-height:30px;padding:0 14px;border-top:1px solid #2a2e37;font-size:12px}
 .pm-status{color:#8fd3a6}
 .pm-status.error{color:#e08585}
@@ -436,16 +437,22 @@ function buildEditor() {
     fName.oninput = updateNameHint;
     nameField.append(label("Name"), fName, fSlugHint);
 
+    // Prefix and suffix sit side by side on desktop; the mobile media query
+    // stacks them on their own lines.
+    const psRow = el("div", "pm-row2");
     const prefixField = fieldArea("Prefix", 5, "Text before the prompt");
     fPrefix = prefixField.area;
-    const promptField = fieldArea("Prompt", 21, "Prompt");
-    fPrompt = promptField.area;
     const suffixField = fieldArea("Suffix", 5, "Text after the prompt");
     fSuffix = suffixField.area;
+    psRow.append(prefixField.field, suffixField.field);
+    const promptField = fieldArea("Prompt", 21, "Prompt");
+    fPrompt = promptField.area;
 
     // Live preview of the assembled text (what the node will produce).
+    // Preview stays collapsed by default: it takes ~170px before any typing
+    // happens, and it opens on demand from the head.
     const preview = document.createElement("details");
-    preview.open = true;
+    preview.open = false;
     preview.className = "pm-preview";
     const previewHead = document.createElement("summary");
     previewHead.className = "pm-preview-head";
@@ -577,6 +584,8 @@ function buildEditor() {
         if (file && file.type.startsWith("image/")) pmReadImageFile(file);
     });
     imgField.append(label("Featured image"), imgRow, fImgUpload);
+    imgField.className += " wide"; // the image row is the widest of the three
+    row2.append(imgField);
 
     const actions = el("div", "pm-row2");
     const btnSave = el("button", "pm-btn success", "Save preset");
@@ -587,7 +596,7 @@ function buildEditor() {
     btnDelete.onclick = () => editing && deletePreset(editing);
     actions.append(btnSave, btnDuplicate, btnDelete);
 
-    form.append(nameField, prefixField.field, promptField.field, suffixField.field, preview, row2, imgField, actions);
+    form.append(nameField, psRow, promptField.field, preview, row2, actions);
     form.dataset.built = "1";
     return form;
 }

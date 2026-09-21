@@ -26,6 +26,31 @@ function persistFilters() {
         // Storage unavailable (private mode): filters simply won't persist
     }
 }
+
+// Pager + grid scroll position, also remembered across reloads.
+const PM_VIEW_KEY = "pm.view";
+const PAGE_SIZES = [20, 30, 40, 50];
+const isMobileViewport = window.matchMedia("(max-width:720px)").matches;
+let view = { page: 1, size: isMobileViewport ? 20 : 40, scroll: 0 };
+let scrollRestored = false;
+try {
+    const saved = JSON.parse(localStorage.getItem(PM_VIEW_KEY) || "{}");
+    view = {
+        page: Math.max(1, parseInt(saved.page, 10) || 1),
+        size: PAGE_SIZES.includes(saved.size) || saved.size === "all" ? saved.size : view.size,
+        scroll: Math.max(0, parseInt(saved.scroll, 10) || 0),
+    };
+} catch {
+    // Corrupt saved state: keep the defaults
+}
+
+function persistView() {
+    try {
+        localStorage.setItem(PM_VIEW_KEY, JSON.stringify(view));
+    } catch {
+        // Storage unavailable: view state simply won't persist
+    }
+}
 let editing = null; // { name, slug } of the preset open in the editor, null for "new"
 let pendingImage = null; // {type:"upload",dataUrl} | {type:"output",path} | {type:"remove"}
 let suggestItems = [];
@@ -39,6 +64,7 @@ const STANDALONE = !!window.__PM_STANDALONE__;
 let fullPage = STANDALONE || localStorage.getItem("pm.fullpage") === "1";
 let sideOpen = localStorage.getItem("pm.sideopen") === "1";
 let btnPageEl = null;
+let pagerPrev, pagerSizeSel, pagerNext, pagerInfo, pagerEl;
 let sideBtn = null;
 let btnExportSel = null;
 let btnDeleteSel = null;
@@ -108,6 +134,9 @@ const CSS = `
 .pm-filter-row input,.pm-filter-row select{background:#0f1115;border:1px solid #2a2e37;border-radius:6px;color:#e6e9ef;padding:6px 8px;font-size:12px}
 .pm-filter-row input{flex:1}
 .pm-filter-row select{max-width:170px}
+.pm-pager{flex:none;display:flex;gap:6px;align-items:center;justify-content:center;padding:8px 10px;border-top:1px solid #2a2e37}
+.pm-pager-btn{flex:none}
+.pm-pager-info{font-size:11px;color:#8a93a2;flex:none}
 .pm-tag-row{display:flex;flex-wrap:wrap;gap:4px;padding:0 10px 8px;flex:none}
 .pm-tag-row[hidden]{display:none}
 .pm-tag{background:#1d232e;border:1px solid #2a2e37;border-radius:999px;padding:2px 9px;font-size:11px;color:#9aa4b2;cursor:pointer}
@@ -355,11 +384,43 @@ function ensureOverlay() {
     tagListEl = el("div", "pm-taglist");
     tagPanelEl.append(tagSearchEl, tagListEl);
     tagRowEl = el("div", "pm-tag-row");
+    // Pager: page size select + prev/next; hidden in "All" mode.
+    pagerPrev = el("button", "pm-btn pm-pager-btn", "\u2039 Prev");
+    pagerPrev.onclick = () => {
+        view.page = Math.max(1, view.page - 1);
+        scrollRestored = false;
+        persistView();
+        renderList();
+    };
+    pagerSizeSel = document.createElement("select");
+    for (const s of [...PAGE_SIZES, "all"]) {
+        pagerSizeSel.append(new Option(s === "all" ? "All" : String(s), String(s)));
+    }
+    pagerSizeSel.value = String(view.size);
+    pagerSizeSel.onchange = () => {
+        view.size = pagerSizeSel.value;
+        view.page = 1;
+        scrollRestored = false;
+        persistView();
+        renderList();
+    };
+    pagerInfo = el("div", "pm-pager-info", "");
+    pagerNext = el("button", "pm-btn pm-pager-btn", "Next \u203a");
+    pagerNext.onclick = () => {
+        view.page += 1;
+        scrollRestored = false;
+        persistView();
+        renderList();
+    };
+    pagerEl = el("div", "pm-pager");
+    pagerEl.append(pagerPrev, pagerSizeSel, pagerInfo, pagerNext);
     filterRow.append(sideBtn, searchEl, catFilterEl, tagsBtn);
     gridEl = el("div", "pm-grid");
+    gridEl.addEventListener("scroll", saveScroll);
     recentEl = el("div", "pm-tag-row");
     recentEl.hidden = true;
-    listPane.append(filterRow, tagPanelEl, tagRowEl, recentEl, gridEl);
+    // The pager is a footer below the grid: always visible, never scrolled past.
+    listPane.append(filterRow, tagPanelEl, tagRowEl, recentEl, gridEl, pagerEl);
 
     const editorPane = el("div", "pm-editor-pane");
     editorEl = el("div", "pm-editor-holder");
@@ -768,6 +829,7 @@ function renderFilters() {
     if (!tagPanelEl.hidden) renderTagPanel();
     renderSide();
     persistFilters();
+    persistView();
 }
 
 function renderTagPanel() {
@@ -961,15 +1023,29 @@ function renderList() {
     for (const slug of [...cardSel]) {
         if (!state.presets.some((p) => p.slug === slug)) cardSel.delete(slug);
     }
-    const presets = visiblePresets();
-    if (!presets.length) {
+    const all = visiblePresets();
+    if (!all.length) {
         gridEl.append(
             el("div", "pm-loading", state.presets.length ? "No presets match" : "No presets yet — click “+ New”"),
         );
+        pagerEl.hidden = true;
         updateSelBtn();
         return;
     }
-    for (const p of presets) {
+    // Paginate the filtered list; "all" disables pagination.
+    let pagePresets = all;
+    if (view.size !== "all") {
+        const count = Math.max(1, Math.ceil(all.length / view.size));
+        view.page = Math.min(Math.max(1, view.page), count);
+        const start = (view.page - 1) * view.size;
+        pagePresets = all.slice(start, start + view.size);
+        pagerPrev.disabled = view.page === 1;
+        pagerNext.disabled = view.page === count;
+        pagerInfo.textContent = "" + view.page + "/" + count;
+    }
+    pagerEl.hidden = view.size === "all";
+
+    for (const p of pagePresets) {
         const card = el(
             "div",
             "pm-card" + ((editing && editing.slug === p.slug) || cardSel.has(p.slug) ? " selected" : ""),
@@ -1023,6 +1099,29 @@ function renderList() {
         gridEl.append(card);
     }
     updateSelBtn();
+    restoreScroll();
+    if (!scrollRestored) {
+        scrollRestored = true;
+        persistView();
+    }
+}
+
+// Remember where the user scrolled in the grid and restore it after reload.
+let scrollSaveTimer = null;
+function saveScroll() {
+    const top = gridEl.scrollTop;
+    if (scrollSaveTimer) return;
+    scrollSaveTimer = setTimeout(() => {
+        scrollSaveTimer = null;
+        view.scroll = top;
+        persistView();
+    }, 250);
+}
+function restoreScroll() {
+    if (view.scroll > 0) {
+        const max = Math.max(0, gridEl.scrollHeight - gridEl.clientHeight);
+        gridEl.scrollTop = Math.min(view.scroll, max);
+    }
 }
 
 function renderAll() {

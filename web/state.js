@@ -56,23 +56,3 @@ export async function checkVersion() {
     }
     if (version !== state.version) refreshPresets();
 }
-
-// Recently used presets (newest first), shared by the node and the manager:
-// [{slug, ts}] in localStorage, capped.
-const PM_RECENT_KEY = "pm.recent";
-const PM_RECENT_MAX = 12;
-
-export function pmRecentList() {
-    try {
-        return JSON.parse(localStorage.getItem(PM_RECENT_KEY)) || [];
-    } catch {
-        return [];
-    }
-}
-
-export function pmRecentAdd(slug) {
-    if (!slug) return;
-    const list = pmRecentList().filter((r) => r.slug !== slug);
-    list.unshift({ slug, ts: Date.now() });
-    localStorage.setItem(PM_RECENT_KEY, JSON.stringify(list.slice(0, PM_RECENT_MAX)));
-}

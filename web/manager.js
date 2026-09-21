@@ -1,4 +1,4 @@
-import { state, refreshPresets, pmOn, pmRecentList, pmRecentAdd } from "./state.js";
+import { state, refreshPresets, pmOn } from "./state.js";
 import { api, downloadBlob, presetRelPath, assembleText, NEW_CATEGORY } from "./api.js";
 
 let searchQuery = "";
@@ -245,7 +245,6 @@ function ensureStyles() {
 let overlay = null;
 let titleEl,
     gridEl,
-    recentEl,
     searchEl,
     catFilterEl,
     tagRowEl,
@@ -417,10 +416,8 @@ function ensureOverlay() {
     filterRow.append(sideBtn, searchEl, catFilterEl, tagsBtn);
     gridEl = el("div", "pm-grid");
     gridEl.addEventListener("scroll", saveScroll);
-    recentEl = el("div", "pm-tag-row");
-    recentEl.hidden = true;
     // The pager is a footer below the grid: always visible, never scrolled past.
-    listPane.append(filterRow, tagPanelEl, tagRowEl, recentEl, gridEl, pagerEl);
+    listPane.append(filterRow, tagPanelEl, tagRowEl, gridEl, pagerEl);
 
     const editorPane = el("div", "pm-editor-pane");
     editorEl = el("div", "pm-editor-holder");
@@ -985,39 +982,8 @@ async function manageDelete(kind, name) {
     }
 }
 
-// "Recent" chip row above the grid: the presets used most recently (picked
-// on a node or opened in the editor), newest first. Hidden while any search
-// or filter narrows the grid.
-function renderRecent() {
-    if (!recentEl) return;
-    recentEl.innerHTML = "";
-    if (searchQuery || filterCategory || filterTags.size) {
-        recentEl.hidden = true;
-        return;
-    }
-    const items = pmRecentList()
-        .map((r) => ({ p: state.presets.find((x) => x.slug === r.slug) }))
-        .filter((r) => r.p)
-        .slice(0, 8);
-    if (!items.length) {
-        recentEl.hidden = true;
-        return;
-    }
-    recentEl.hidden = false;
-    recentEl.append(el("span", "pm-tagger-title", "Recent"));
-    for (const r of items) {
-        const chip = el("span", "pm-tag", r.p.name);
-        chip.title = r.p.category ? r.p.name + " · " + r.p.category : r.p.name;
-        chip.onclick = () => {
-            if (!confirmDiscard()) return;
-            openInEditor(r.p);
-        };
-        recentEl.append(chip);
-    }
-}
 
 function renderList() {
-    renderRecent();
     gridEl.innerHTML = "";
     // drop selections for presets that no longer exist
     for (const slug of [...cardSel]) {
@@ -1159,7 +1125,6 @@ function startNew() {
 // The /list summary already carries everything the editor needs, so the
 // editor opens straight from state — no fetch, no base64 image round-trip.
 function openInEditor(p) {
-    pmRecentAdd(p.slug);
     editing = { name: p.name, slug: p.slug };
     pendingImage = null;
     showForm({

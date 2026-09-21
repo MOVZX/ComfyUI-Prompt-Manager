@@ -4,6 +4,28 @@ import { api, downloadBlob, presetRelPath, assembleText, NEW_CATEGORY } from "./
 let searchQuery = "";
 let filterCategory = "";
 let filterTags = new Set();
+// Remember list filters across reloads and standalone visits. Stale values
+// are pruned in renderFilters against the current library.
+const PM_FILTERS_KEY = "pm.filters";
+try {
+    const saved = JSON.parse(localStorage.getItem(PM_FILTERS_KEY) || "{}");
+    searchQuery = typeof saved.q === "string" ? saved.q : "";
+    filterCategory = typeof saved.c === "string" ? saved.c : "";
+    filterTags = new Set(Array.isArray(saved.tags) ? saved.tags.filter((t) => typeof t === "string") : []);
+} catch {
+    // Corrupt saved state: start clean
+}
+
+function persistFilters() {
+    try {
+        localStorage.setItem(
+            PM_FILTERS_KEY,
+            JSON.stringify({ q: searchQuery, c: filterCategory, tags: [...filterTags] }),
+        );
+    } catch {
+        // Storage unavailable (private mode): filters simply won't persist
+    }
+}
 let editing = null; // { name, slug } of the preset open in the editor, null for "new"
 let pendingImage = null; // {type:"upload",dataUrl} | {type:"output",path} | {type:"remove"}
 let suggestItems = [];
@@ -303,12 +325,13 @@ function ensureOverlay() {
     searchEl.value = searchQuery;
     searchEl.oninput = () => {
         searchQuery = searchEl.value.trim().toLowerCase();
+        persistFilters();
         renderList();
     };
     catFilterEl = document.createElement("select");
     catFilterEl.onchange = () => {
         filterCategory = catFilterEl.value;
-        renderSide();
+        renderFilters();
         renderList();
     };
     sideBtn = el("button", "pm-btn", "\u2630");
@@ -685,6 +708,7 @@ function renderSide() {
     };
     const all = item("All", state.presets.length, filterCategory === "");
     all.onclick = () => {
+        filterCategory = "";
         catFilterEl.value = "";
         renderFilters();
         renderList();
@@ -693,7 +717,8 @@ function renderSide() {
     for (const c of [...state.categories].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))) {
         const row = item(c, state.presets.filter((p) => p.category === c).length, filterCategory === c);
         row.onclick = () => {
-            catFilterEl.value = filterCategory === c ? "" : c;
+            filterCategory = filterCategory === c ? "" : c;
+            catFilterEl.value = filterCategory;
             renderFilters();
             renderList();
         };
@@ -702,12 +727,13 @@ function renderSide() {
 }
 
 function renderFilters() {
-    const sel = catFilterEl.value || "All";
     catFilterEl.innerHTML = "";
     catFilterEl.append(new Option("All categories", ""));
     for (const c of state.categories) catFilterEl.append(new Option(c, c));
-    catFilterEl.value = state.categories.includes(sel) ? sel : "";
-    filterCategory = catFilterEl.value;
+    // filterCategory is the source of truth (it survives a page reload via
+    // localStorage); validate it against the library and sync the dropdown.
+    if (!state.categories.includes(filterCategory)) filterCategory = "";
+    catFilterEl.value = filterCategory;
 
     // Drop filter tags that no longer exist (deleted outside the filter UI).
     for (const t of [...filterTags]) {
@@ -732,6 +758,7 @@ function renderFilters() {
     tagsBtn.textContent = filterTags.size ? "Tags (" + filterTags.size + ")" : "Tags";
     if (!tagPanelEl.hidden) renderTagPanel();
     renderSide();
+    persistFilters();
 }
 
 function renderTagPanel() {

@@ -58,12 +58,11 @@ let suggestIndex = -1;
 let statusTimer = null;
 let formDirty = false;
 // The standalone page (/prompt_manager/dashboard) sets this flag before the
-// modules load: it is a full page, not a modal, so the close and mode-toggle
-// buttons are hidden.
+// modules load: it is a full page, not a modal, so the close button is
+// hidden. In ComfyUI the manager is always a modal.
 const STANDALONE = !!window.__PM_STANDALONE__;
-let fullPage = STANDALONE || localStorage.getItem("pm.fullpage") === "1";
+let fullPage = STANDALONE;
 let sideOpen = localStorage.getItem("pm.sideopen") === "1";
-let btnPageEl = null;
 let pagerPrev, pagerSizeSel, pagerNext, pagerInfo, pagerEl;
 let sideBtn = null;
 let btnExportSel = null;
@@ -326,20 +325,9 @@ function ensureOverlay() {
     };
     const btnClose = el("button", "pm-btn close danger", "×");
     btnClose.onclick = closeManager;
-    const btnPage = el("button", "pm-btn", fullPage ? "Modal" : "Full page");
-    btnPage.title = "Toggle full page / modal";
-    btnPage.onclick = () => {
-        fullPage = !fullPage;
-        localStorage.setItem("pm.fullpage", fullPage ? "1" : "0");
-        applyFullPage();
-    };
-    btnPageEl = btnPage;
-    // Standalone: there is no modal to switch back to and no overlay to close.
-    if (STANDALONE) {
-        btnClose.hidden = true;
-        btnPage.hidden = true;
-    }
-    header.append(btnNew, btnImport, btnExportSel, btnDeleteSel, btnExportAll, btnManage, btnPage, btnClose);
+    // Standalone: there is no overlay to close.
+    if (STANDALONE) btnClose.hidden = true;
+    header.append(btnNew, btnImport, btnExportSel, btnDeleteSel, btnExportAll, btnManage, btnClose);
 
     const body = el("div", "pm-body");
 
@@ -1469,7 +1457,6 @@ function closeGallery() {
 }
 function applyFullPage() {
     if (overlay) overlay.classList.toggle("pm-full", fullPage);
-    if (btnPageEl) btnPageEl.textContent = fullPage ? "Modal" : "Full page";
 }
 
 function applySide() {
@@ -1477,13 +1464,8 @@ function applySide() {
     if (sideBtn) sideBtn.classList.toggle("on", sideOpen);
 }
 
-function openManager(full) {
+function openManager() {
     ensureOverlay();
-
-    if (full) {
-        fullPage = true;
-        localStorage.setItem("pm.fullpage", "1");
-    }
     applyFullPage();
     overlay.hidden = false;
     refreshPresets();

@@ -366,17 +366,6 @@ export function registerNode() {
         },
 
         async setup() {
-            // /prompt_manager/dashboard redirects here: open the manager as a
-            // dedicated full page once the app is up.
-            if (new URLSearchParams(location.search).has("pm")) {
-                const t = setInterval(() => {
-                    if (app.graph) {
-                        clearInterval(t);
-                        openManager(true);
-                    }
-                }, 200);
-                setTimeout(() => clearInterval(t), 15000);
-            }
             app.api.addEventListener("graphChanged", () => {
                 syncPresetToText();
                 clearTimeout(graphRefreshTimer);

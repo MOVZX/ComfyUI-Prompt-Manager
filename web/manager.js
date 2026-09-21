@@ -10,7 +10,11 @@ let suggestItems = [];
 let suggestIndex = -1;
 let statusTimer = null;
 let formDirty = false;
-let fullPage = localStorage.getItem("pm.fullpage") === "1";
+// The standalone page (/prompt_manager/dashboard) sets this flag before the
+// modules load: it is a full page, not a modal, so the close and mode-toggle
+// buttons are hidden.
+const STANDALONE = !!window.__PM_STANDALONE__;
+let fullPage = STANDALONE || localStorage.getItem("pm.fullpage") === "1";
 let sideOpen = localStorage.getItem("pm.sideopen") === "1";
 let btnPageEl = null;
 let sideBtn = null;
@@ -271,14 +275,20 @@ function ensureOverlay() {
     };
     const btnClose = el("button", "pm-btn close danger", "×");
     btnClose.onclick = closeManager;
-    btnPageEl = el("button", "pm-btn", fullPage ? "Modal" : "Full page");
-    btnPageEl.title = "Toggle full page / modal";
-    btnPageEl.onclick = () => {
+    const btnPage = el("button", "pm-btn", fullPage ? "Modal" : "Full page");
+    btnPage.title = "Toggle full page / modal";
+    btnPage.onclick = () => {
         fullPage = !fullPage;
         localStorage.setItem("pm.fullpage", fullPage ? "1" : "0");
         applyFullPage();
     };
-    header.append(btnNew, btnImport, btnExportSel, btnDeleteSel, btnExportAll, btnManage, btnPageEl, btnClose);
+    btnPageEl = btnPage;
+    // Standalone: there is no modal to switch back to and no overlay to close.
+    if (STANDALONE) {
+        btnClose.hidden = true;
+        btnPage.hidden = true;
+    }
+    header.append(btnNew, btnImport, btnExportSel, btnDeleteSel, btnExportAll, btnManage, btnPage, btnClose);
 
     const body = el("div", "pm-body");
 

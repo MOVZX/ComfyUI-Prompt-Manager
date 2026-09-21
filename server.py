@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from pathlib import Path
 from aiohttp import web
 from server import PromptServer
 from . import storage
@@ -67,9 +68,15 @@ async def library_version(request):
     return web.json_response({"version": storage.library_version()})
 
 
-@routes.get("/prompt_manager/dashboard")
-async def dashboard_page(request):
-    return web.Response(status=302, headers={"Location": "/?pm=1"})
+def dashboard_page(request):
+    # The manager as a standalone page: no ComfyUI frontend, just the
+    # manager UI talking to the /prompt_manager API.
+    path = Path(__file__).parent / "web" / "standalone.html"
+    return web.Response(body=path.read_bytes(), content_type="text/html")
+
+
+routes.get("/prompts")(dashboard_page)
+routes.get("/prompt_manager/dashboard")(dashboard_page)
 
 
 @routes.get("/prompt_manager/tags")

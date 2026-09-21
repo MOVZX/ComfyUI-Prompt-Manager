@@ -1,4 +1,6 @@
-import { app } from "../../scripts/app.js";
+// No ComfyUI `app` import: this module also runs on the standalone page
+// (/prompt_manager/dashboard), which loads without the ComfyUI frontend.
+// Same-origin fetch covers both contexts.
 
 // Matches the editor's "+ Add new category…" placeholder value; presets saved
 // with it go to the category root.
@@ -50,7 +52,7 @@ function downloadBlob(blob, filename) {
 }
 // ---------- API ----------
 async function apiJson(path, opts = {}) {
-    const res = await app.api.fetchApi(path, {
+    const res = await fetch(path, {
         method: opts.method ?? "GET",
         body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
     });
@@ -79,7 +81,7 @@ const api = {
         apiJson("/prompt_manager/import", { method: "POST", body: { payload, dry_run: !!dryRun } }),
     gallery: (limit) => apiJson("/prompt_manager/gallery" + (limit ? "?limit=" + limit : "")).then((j) => j.files),
     async exportBlob(names) {
-        const res = await app.api.fetchApi("/prompt_manager/export", {
+        const res = await fetch("/prompt_manager/export", {
             method: "POST",
             body: JSON.stringify({ names }),
         });

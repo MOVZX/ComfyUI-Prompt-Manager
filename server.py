@@ -250,6 +250,7 @@ def _export_body(names):
     # Runs off the event loop: base64-encoding every featured image is the
     # heavy part
     bundle = storage.build_export(names)
+
     return json.dumps(bundle, ensure_ascii=False).encode("utf-8")
 
 

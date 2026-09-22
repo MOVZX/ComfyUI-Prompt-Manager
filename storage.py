@@ -481,6 +481,7 @@ def save_preset(data, old_slug=None, replace=False):
     # comma-separated string; split it like the editor input does instead of
     # iterating characters
     raw_tags = data.get("tags")
+
     if isinstance(raw_tags, str):
         raw_tags = raw_tags.split(",")
 
@@ -492,6 +493,7 @@ def save_preset(data, old_slug=None, replace=False):
                 raise ValueError(
                     "Tag must be at most {} characters: '{}'".format(MAX_TAG_LENGTH, tag)
                 )
+
             tags.append(tag)
 
     with _lock:
@@ -782,6 +784,7 @@ def import_payload(payload, dry_run=False):
 
         if is_overwrite:
             overwritten.append(preset["name"])
+
         seen.add((category, name))
 
     return imported, skipped, overwritten

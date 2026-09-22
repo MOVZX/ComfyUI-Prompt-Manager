@@ -45,6 +45,7 @@ class PromptManager:
         # name/slug lookup.
         parts = [str(p).strip() for p in (prefix, text, suffix)]
         out = "\n\n".join(p for p in parts if p)
+
         if not out and preset and preset != NO_PRESET:
             cat = "" if not category or category == ALL_CATEGORIES else str(category)
             data = storage.load_preset(preset, cat)
@@ -54,4 +55,5 @@ class PromptManager:
             return ([], out)
 
         tokens = clip.tokenize(out)
+
         return (clip.encode_from_tokens_scheduled(tokens), out)

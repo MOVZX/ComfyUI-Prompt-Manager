@@ -94,6 +94,8 @@ const CSS = `
 .pm-btn.on{background:#27436e;border-color:#3b82f6;color:#d6e4ff}
 .pm-btn.success{background:#15803d;border-color:#15803d;color:#fff}
 .pm-btn.success:hover{background:#16a34a}
+.pm-btn:focus-visible{outline:2px solid #3b82f6;outline-offset:2px}
+.pm-card-actions button:focus-visible{outline:2px solid #3b82f6;outline-offset:2px}
 .pm-back{background:transparent;color:#8b93a1}
 .pm-back:hover{background:#2c303a;color:#e6e9ef}
 .pm-btn.close{padding:5px 10px;font-size:14px;line-height:1}
@@ -110,7 +112,7 @@ const CSS = `
 .pm-side-item:hover{background:#23262e}
 .pm-side-item.active{background:#27436e;color:#d6e4ff}
 .pm-side-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pm-side-count{font-size:11px;color:#5b6370}
+.pm-side-count{font-size:11px;color:#8a93a2}
 .pm-side-item.active .pm-side-count{color:#9db8e8}
 .pm-manage-pane{flex:1;display:none;flex-direction:row;min-width:0;min-height:0}
 .pm-overlay.pm-managing .pm-manage-pane{display:flex}
@@ -148,7 +150,7 @@ const CSS = `
 .pm-tag-x{margin-left:6px;color:#8b93a1;font-weight:600;cursor:pointer}
 .pm-tag-x:hover{color:#e08585}
 .pm-tagger-title{font-size:11px;font-weight:600;color:#8b93a1;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
-.pm-tagger-empty{font-size:11px;color:#5b6370;font-style:italic;padding:2px 0}
+.pm-tagger-empty{font-size:11px;color:#8a93a2;font-style:italic;padding:2px 0}
 .pm-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:4px 10px 10px;align-content:start}
 .pm-card{position:relative;background:#1e2128;border:1px solid #2a2e37;border-radius:8px;overflow:hidden;cursor:pointer;height:180px}
 .pm-card:hover{border-color:#4a5160}
@@ -158,9 +160,9 @@ const CSS = `
 .pm-card-name{position:absolute;top:0;left:0;right:0;z-index:1;font-size:12px;font-weight:600;color:#e6e9ef;padding:6px 8px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:linear-gradient(180deg,rgba(0,0,0,.75) 30%,rgba(0,0,0,0))}
 .pm-card-meta{position:absolute;bottom:0;left:0;right:0;z-index:1;display:flex;flex-wrap:wrap;gap:3px;padding:16px 8px 7px;background:linear-gradient(0deg,rgba(0,0,0,.75) 20%,rgba(0,0,0,0))}
 .pm-badge{background:#232a36;border-radius:4px;padding:1px 6px;font-size:10px;color:#8fd3a6}
-.pm-card-tag{font-size:10px;color:#6d7684}
+.pm-card-tag{font-size:10px;color:#8a93a2}
 .pm-card-actions{position:absolute;top:4px;right:4px;z-index:2;display:none;gap:3px}
-.pm-card:hover .pm-card-actions{display:flex}
+.pm-card:hover .pm-card-actions,.pm-card-actions:focus-within{display:flex}
 .pm-card-actions button{width:22px;height:22px;border-radius:5px;border:1px solid #343945;background:rgba(15,17,21,.85);color:#cfd6e0;font-size:11px;cursor:pointer;line-height:1}
 .pm-card-actions button:hover{background:#2c303a}
 .pm-editor-pane{flex:1;display:none;flex-direction:column;min-width:0;min-height:0}
@@ -171,7 +173,7 @@ const CSS = `
 .pm-field input,.pm-field textarea,.pm-field select{width:100%;box-sizing:border-box;background:#0f1115;border:1px solid #2a2e37;border-radius:6px;color:#e6e9ef;padding:7px 9px;font-size:13px;font-family:inherit;resize:vertical}
 .pm-field select{resize:none}
 .pm-field input:focus,.pm-field textarea:focus{outline:none;border-color:#3b82f6}
-.pm-hint{font-size:10px;color:#5b6370;margin-top:3px}
+.pm-hint{font-size:10px;color:#8a93a2;margin-top:3px}
 .pm-hint.warn{color:#e0a35b}
 .pm-preview summary.pm-preview-head{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none}
 .pm-preview summary.pm-preview-head::-webkit-details-marker{display:none}
@@ -191,7 +193,7 @@ const CSS = `
 .pm-img-row{display:flex;gap:12px;align-items:flex-start}
 .pm-img-row.pm-img-drop{outline:2px dashed #3b82f6;outline-offset:2px;border-radius:6px}
 .pm-img-preview{width:110px;height:82px;object-fit:cover;border-radius:6px;border:1px solid #2a2e37;background:#12141a}
-.pm-img-placeholder{width:110px;height:82px;border-radius:6px;border:1px dashed #343945;display:flex;align-items:center;justify-content:center;color:#5b6370;font-size:11px}
+.pm-img-placeholder{width:110px;height:82px;border-radius:6px;border:1px dashed #343945;display:flex;align-items:center;justify-content:center;color:#8a93a2;font-size:11px}
 .pm-img-btns{display:flex;flex-direction:row;gap:6px}
 .pm-footer{flex:none;display:flex;align-items:center;min-height:30px;padding:0 14px;border-top:1px solid #2a2e37;font-size:12px}
 .pm-status{color:#8fd3a6}
@@ -210,6 +212,7 @@ const CSS = `
   .pm-title{font-size:14px}
   .pm-btn{padding:8px 12px;font-size:13px;touch-action:manipulation}
   .pm-overlay.pm-side-open .pm-side{display:none}
+  .pm-side-toggle{display:none}
   .pm-filter-row{flex-wrap:wrap}
   .pm-filter-row input,.pm-filter-row select{font-size:16px}
   .pm-filter-row select{max-width:128px}
@@ -351,7 +354,7 @@ function ensureOverlay() {
         renderFilters();
         renderList();
     };
-    sideBtn = el("button", "pm-btn", "\u2630");
+    sideBtn = el("button", "pm-btn pm-side-toggle", "\u2630");
     sideBtn.title = "Show/hide category list";
     sideBtn.onclick = () => {
         sideOpen = !sideOpen;
@@ -980,7 +983,7 @@ function renderList() {
     const all = visiblePresets();
     if (!all.length) {
         gridEl.append(
-            el("div", "pm-loading", state.presets.length ? "No presets match" : "No presets yet — click “+ New”"),
+            el("div", "pm-loading", !state.loaded ? "Loading…" : state.presets.length ? "No presets match" : "No presets yet — click “+ New”"),
         );
         pagerEl.hidden = true;
         updateSelBtn();
@@ -1024,10 +1027,14 @@ function renderList() {
         const actions = el("div", "pm-card-actions");
         const btnSelect = el("button", null, cardSel.has(p.slug) ? "☑" : "☐");
         btnSelect.title = "Select for export";
+        btnSelect.setAttribute("role", "checkbox");
+        btnSelect.setAttribute("aria-checked", String(cardSel.has(p.slug)));
+        btnSelect.setAttribute("aria-label", "Select “" + p.name + "” for export");
         btnSelect.onclick = (e) => {
             e.stopPropagation();
             cardSel.has(p.slug) ? cardSel.delete(p.slug) : cardSel.add(p.slug);
             btnSelect.textContent = cardSel.has(p.slug) ? "☑" : "☐";
+            btnSelect.setAttribute("aria-checked", String(cardSel.has(p.slug)));
             card.classList.toggle("selected", cardSel.has(p.slug) || (!!editing && editing.slug === p.slug));
             updateSelBtn();
         };

@@ -10,8 +10,7 @@ class PromptManager:
     "All Categories"), then a preset: the fields fill with the preset's
     parts; edit them freely afterwards. "None" leaves the fields untouched.
     When all three fields are empty, the selected preset's assembly is used.
-    Outputs the text, and as conditioning when a CLIP is connected
-    (empty conditioning without one).
+    Outputs the assembled text.
     Presets are managed with the Prompt Manager button on this node."""
 
     @classmethod
@@ -25,19 +24,18 @@ class PromptManager:
                 "preset": ([NO_PRESET] + [p["name"] for p in presets],),
             },
             "optional": {
-                "clip": ("CLIP",),
                 "prefix": ("STRING", {"multiline": True, "dynamicPrompts": True, "default": ""}),
                 "text": ("STRING", {"multiline": True, "dynamicPrompts": True, "default": ""}),
                 "suffix": ("STRING", {"multiline": True, "dynamicPrompts": True, "default": ""}),
             },
         }
 
-    RETURN_TYPES = ("CONDITIONING", "STRING")
-    RETURN_NAMES = ("conditioning", "text")
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("text",)
     FUNCTION = "run"
     CATEGORY = "Prompt Manager"
 
-    def run(self, clip=None, category=None, preset=None, text="", prefix="", suffix=""):
+    def run(self, category=None, preset=None, text="", prefix="", suffix=""):
         # The three fields are the source of truth, assembled prefix -> text
         # -> suffix; the preset is the fallback when all three are empty.
         # Names may repeat across categories, so resolve by name within the
@@ -51,9 +49,4 @@ class PromptManager:
             data = storage.load_preset(preset, cat)
             out = storage.assemble_text(data) if data is not None else ""
 
-        if clip is None:
-            return ([], out)
-
-        tokens = clip.tokenize(out)
-
-        return (clip.encode_from_tokens_scheduled(tokens), out)
+        return (out,)

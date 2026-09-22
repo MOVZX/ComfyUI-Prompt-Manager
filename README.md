@@ -44,7 +44,6 @@ Inputs:
 | ------------------ | ------------------------------------------------------------------------------------- |
 | `category`         | Dropdown, A–Z. "All Categories" shows every preset.                                   |
 | `preset`           | Dropdown, A–Z, filtered by the selected category. "None" leaves the fields untouched. |
-| `clip`             | Optional. Only needed for the conditioning output.                                    |
 | `prefix` / `text` / `suffix` | Editable fields. Selecting a preset fills them; edit freely afterwards. |
 
 Behavior:
@@ -71,10 +70,9 @@ Buttons:
 
 Outputs:
 
-| Output         | Description                                                 |
-| -------------- | ----------------------------------------------------------- |
-| `CONDITIONING` | The text encoded by CLIP; `None` when no CLIP is connected. |
-| `STRING`       | The text as-is.                                             |
+| Output   | Description    |
+| -------- | -------------- |
+| `STRING` | The text as-is |
 
 ## Manager
 

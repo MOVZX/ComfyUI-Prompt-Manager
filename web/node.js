@@ -209,7 +209,7 @@ function pmDrawCoverWidget(ctx, node, width, y, H, lowQuality) {
     const x0 = PM_MARGIN;
     const w = node.size[0] - PM_MARGIN * 2;
     ctx.save();
-    ctx.fillStyle = "#222";
+    ctx.fillStyle = "#12141a";
     ctx.beginPath();
     ctx.roundRect(x0, y, w, h, [6]);
     ctx.fill();
@@ -220,7 +220,7 @@ function pmDrawCoverWidget(ctx, node, width, y, H, lowQuality) {
         const dh = img.naturalHeight * scale;
         ctx.drawImage(img, x0 + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
     } else {
-        ctx.fillStyle = "#5b6370";
+        ctx.fillStyle = "#8a93a2";
         ctx.font = "12px monospace";
         ctx.textAlign = "center";
         ctx.fillText("\u2026", x0 + w / 2, y + h / 2);

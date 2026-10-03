@@ -29,9 +29,9 @@ function persistFilters() {
 
 // Pager + grid scroll position, also remembered across reloads.
 const PM_VIEW_KEY = "pm.view";
-const PAGE_SIZES = [20, 30, 40, 50];
+const PAGE_SIZES = [20, 30, 40, 50, 100];
 const isMobileViewport = window.matchMedia("(max-width:720px)").matches;
-let view = { page: 1, size: isMobileViewport ? 20 : 40, scroll: 0 };
+let view = { page: 1, size: isMobileViewport ? 50 : 100, scroll: 0 };
 let scrollRestored = false;
 try {
     const saved = JSON.parse(localStorage.getItem(PM_VIEW_KEY) || "{}");

@@ -30,7 +30,10 @@ export function pmSetCoverMode(mode) {
 export async function refreshPresets() {
     try {
         const data = await api.list();
-        state.presets = data.presets;
+        // A–Z by name: serves the node's preset combos and the manager grid.
+        state.presets = data.presets.slice().sort((a, b) =>
+            String(a.name).localeCompare(String(b.name), undefined, { sensitivity: "base" }),
+        );
         state.categories = data.categories;
         state.tags = data.tags;
         state.version = data.version;

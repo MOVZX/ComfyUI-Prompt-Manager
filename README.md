@@ -79,8 +79,8 @@ Outputs:
 - **Full page mode**: open `http://localhost:8188/prompt_manager/dashboard` (or the "Full page" button in the header) to view the manager as a dedicated full-screen page; the choice is remembered.
 - **Search** presets by name, text, category or tags. Filter by category
   (sidebar with counts, or the dropdown) and by tags ("Tags" button opens a
-  searchable panel; selected tags stay visible as removable chips). Categories
-  and tags sort A–Z; presets sort newest-created first.
+  searchable panel; selected tags stay visible as removable chips). Categories,
+  tags and presets all sort A–Z.
 - **Create / edit / delete** presets. Renaming a preset renames its JSON file
   and moves the image to follow the new slug. Preset names and categories are
   limited to 64 characters. Names are unique **within a category**; the same
